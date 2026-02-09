@@ -1,0 +1,109 @@
+name: API Tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      api_base_url:
+        description: 'API Base URL'
+        required: false
+        default: 'http://localhost:3000'
+  push:
+    branches:
+      - main
+      - develop
+      - 'feature/**'
+    paths:
+      - 'api/**'
+      - 'package.json'
+      - '.github/workflows/api-tests.yml'
+  pull_request:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'api/**'
+      - 'package.json'
+
+jobs:
+  api-tests:
+    name: API Tests
+    runs-on: ubuntu-latest
+    
+    services:
+      serverest:
+        image: paulogr/serverest:latest
+        ports:
+          - 3000:3000
+        options: >-
+          --health-cmd "wget --quiet --tries=1 --spider http://localhost:3000/usuarios || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Wait for ServeRest
+        run: |
+          npm install -g wait-on
+          wait-on http://localhost:3000/usuarios --timeout 30000
+
+      - name: Run API Tests
+        run: npm run test:api
+        env:
+          API_BASE_URL: ${{ github.event.inputs.api_base_url || 'http://localhost:3000' }}
+          CI: true
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-test-results
+          path: test-results/
+          retention-days: 30
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-playwright-report
+          path: playwright-report/api/
+          retention-days: 30
+
+      - name: Publish test results
+        if: always()
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        with:
+          files: test-results/api-junit.xml
+          check_name: API Test Results
+          comment_title: API Tests Report
+          comment_mode: always
+
+      - name: Slack notification on failure
+        if: failure()
+        uses: slackapi/slack-github-action@v1
+        with:
+          webhook-url: ${{ secrets.SLACK_WEBHOOK }}
+          payload: |
+            {
+              "text": "❌ API Tests Failed",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*API Tests Failed* 🚨\n*Repository:* ${{ github.repository }}\n*Branch:* ${{ github.ref_name }}\n*Author:* ${{ github.actor }}"
+                  }
+                }
+              ]
+            }

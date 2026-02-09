@@ -1,0 +1,76 @@
+name: E2E Tests
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - develop
+      - 'feature/**'
+    paths:
+      - 'e2e/**'
+      - 'package.json'
+      - '.github/workflows/e2e-tests.yml'
+  pull_request:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'e2e/**'
+      - 'package.json'
+
+jobs:
+  e2e-tests:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        browser: [chromium, firefox, webkit]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Install Playwright browsers
+        run: npx playwright install ${{ matrix.browser }}
+
+      - name: Run E2E Tests
+        run: npm run test:e2e -- --grep ".*"
+        env:
+          BROWSER: ${{ matrix.browser }}
+          HEADLESS: true
+          CI: true
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-test-results-${{ matrix.browser }}
+          path: test-results/
+          retention-days: 30
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-playwright-report-${{ matrix.browser }}
+          path: playwright-report/
+          retention-days: 30
+
+      - name: Upload Cucumber report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-cucumber-report-${{ matrix.browser }}
+          path: reports/
+          retention-days: 30

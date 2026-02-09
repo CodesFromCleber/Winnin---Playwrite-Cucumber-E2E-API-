@@ -1,0 +1,10 @@
+node_modules/
+dist/
+reports/
+test-results/
+playwright-report/
+.playwright/
+*.log
+.env
+.DS_Store
+package-lock.json

@@ -1,0 +1,36 @@
+{
+  "name": "winning-qa-challenge-ge",
+  "version": "1.0.0",
+  "description": "Technical challenge GloboEsporte",
+  "main": "index.js",
+  "scripts": {
+    "test:e2e": "cucumber-js --require-module ts-node/register --require e2e/**/*.ts --format progress-bar --format json:reports/cucumber_report.json",
+    "test:e2e:headed": "HEADLESS=false npm run test:e2e",
+    "test:e2e:chrome": "BROWSER=chromium npm run test:e2e",
+    "test:e2e:firefox": "BROWSER=firefox npm run test:e2e",
+    "test:e2e:webkit": "BROWSER=webkit npm run test:e2e",
+    "test:api": "playwright test --config=playwright-api.config.ts",
+    "test:api:docker": "docker run --network host -v $(pwd):/app -w /app mcr.microsoft.com/playwright:v1.41.0-focal npm run test:api",
+    "test:api:debug": "playwright test --config=playwright-api.config.ts --debug",
+    "test:api:ui": "playwright test --config=playwright-api.config.ts --ui",
+    "test:all": "npm run test:api && npm run test:e2e",
+    "report": "node e2e/utils/generate-report.js"
+  },
+  "keywords": [
+    "playwright",
+    "cucumber",
+    "bdd",
+    "e2e",
+    "testing"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@cucumber/cucumber": "^10.3.1",
+    "@playwright/test": "^1.41.0",
+    "@types/node": "^20.11.0",
+    "cucumber-html-reporter": "^6.0.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  }
+}
